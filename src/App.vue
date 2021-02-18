@@ -17,65 +17,52 @@
     </form>
     <div class="red">
       <ul v-for="todo in todos" :key="todo.id">
-        <li class="d-flex align-items-center justify-content-between w-25 mt-4">
-          <input type="checkbox" v-model="todo.done" />
-          <span :class="{ done: todo.done }">{{ todo.task }}</span>
-          <button @click="clearTodo(todo.id)" class="btn btn-sm btn-danger">
+        <li class="d-flex align-items-center mt-4">
+          <input type="checkbox" v-model="todo.done" class="mx-4" />
+          <input
+            v-if="todo.edit"
+            type="text"
+            id="edit-to-do"
+            class="form-control mx-2"
+            v-model="todo.editText"
+            @keyup.enter="saveTodo(todo)"
+            @keyup.esc="todo.edit = false"
+            @blur="todo.edit = false"
+            ref="edit"
+          />
+          <span
+            @dblclick="editTodo(todo)"
+            v-else
+            :class="{ done: todo.done }"
+            style="flex-grow: 1"
+            @mousedown.prevent
+            >{{ todo.task }}</span
+          >
+          <button
+            @click="clearTodo(todo.id)"
+            class="btn btn-sm btn-danger mx-2"
+          >
             Delete
           </button>
           <button
-            type="button"
-            class="btn btn-primary"
-            data-bs-toggle="modal"
-            data-bs-target="#editModal"
+            v-if="!todo.edit"
+            @click="editTodo(todo)"
+            class="btn btn-sm btn-primary mx-2"
           >
             Edit
           </button>
+          <div v-else class="d-flex">
+            <button class="btn btn-sm btn-secondary" @click="todo.edit = false">
+              Cancel
+            </button>
+            <button @click="saveTodo(todo)" class="btn btn-sm btn-primary mx-2">
+              Save
+            </button>
+          </div>
         </li>
       </ul>
     </div>
   </div>
-  <!-- <div>
-    <b-button v-b-modal.modal-1>Launch demo modal</b-button>
-
-    <b-modal id="modal-1" title="BootstrapVue">
-      <p class="my-4">Hello from modal!</p>
-    </b-modal>
-  </div> -->
-  <!-- <div
-    class="modal fade"
-    id="exampleModal"
-    tabindex="-1"
-    aria-labelledby="exampleModalLabel"
-    aria-hidden="true"
-  >
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="exampleModalLabel">Modal title</h5>
-          <button
-            type="button"
-            class="btn-close"
-            data-bs-dismiss="modal"
-            aria-label="Close"
-          ></button>
-        </div>
-        <div class="modal-body">
-          ...
-        </div>
-        <div class="modal-footer">
-          <button
-            type="button"
-            class="btn btn-secondary"
-            data-bs-dismiss="modal"
-          >
-            Close
-          </button>
-          <button type="button" class="btn btn-primary">Save changes</button>
-        </div>
-      </div>
-    </div>
-  </div> -->
 </template>
 
 <script>
@@ -98,7 +85,9 @@ export default {
       const newTask = {
         task: this.task,
         id: Date.now(),
-        done: false
+        done: false,
+        edit: false,
+        editText: ""
       };
       this.task && this.todos.push(newTask);
       this.task = "";
@@ -106,20 +95,29 @@ export default {
     clearTodo(id) {
       this.todos = this.todos.filter(todo => todo.id !== id);
     },
-    updateLocalStorage(newTask) {
-      const todos = JSON.parse(localStorage.getItem("todos"));
-      todos.push(newTask);
-      localStorage.setItem("todos", JSON.stringify(todos));
+    saveTodo(todo) {
+      todo.task = todo.editText;
+      todo.done = false;
+      todo.edit = false;
+    },
+    editTodo(todo) {
+      todo.edit = true;
+      todo.editText = todo.task;
+      this.$nextTick(() => this.$refs.edit.focus());
     }
   },
-  created() {
-    this.$watch(
-      "todos",
-      todos => {
-        localStorage.setItem("todos", JSON.stringify(todos));
+  watch: {
+    todos: {
+      handler(todos) {
+        const todosCopy = todos.map(todo => ({
+          ...todo,
+          edit: false
+        }));
+
+        localStorage.setItem("todos", JSON.stringify(todosCopy));
       },
-      { deep: true }
-    );
+      deep: true
+    }
   }
 };
 </script>
